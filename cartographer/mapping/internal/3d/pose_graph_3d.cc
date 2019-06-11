@@ -193,6 +193,7 @@ void PoseGraph3D::AddLandmarkData(int trajectory_id,
 
 void PoseGraph3D::ComputeConstraint(const NodeId& node_id,
                                     const SubmapId& submap_id) {
+  LOG(INFO) << ">> PoseGraph3D::ComputeConstraint. node_id: " << node_id << " submap_id: " << submap_id;
   CHECK(submap_data_.at(submap_id).state == SubmapState::kFinished);
 
   const transform::Rigid3d global_node_pose =
@@ -243,6 +244,7 @@ void PoseGraph3D::ComputeConstraint(const NodeId& node_id,
 }
 
 void PoseGraph3D::ComputeConstraintsForOldNodes(const SubmapId& submap_id) {
+  LOG(INFO) << ">> PoseGraph3D::ComputeConstraintsForOldNodes. submap_id: " << submap_id;
   const auto& submap_data = submap_data_.at(submap_id);
   for (const auto& node_id_data : optimization_problem_->node_data()) {
     const NodeId& node_id = node_id_data.id;
@@ -256,6 +258,7 @@ void PoseGraph3D::ComputeConstraintsForNode(
     const NodeId& node_id,
     std::vector<std::shared_ptr<const Submap3D>> insertion_submaps,
     const bool newly_finished_submap) {
+  LOG(INFO) << ">> PoseGraph3D::ComputeConstraintsForNode node_id: " << node_id;
   const auto& constant_data = trajectory_nodes_.at(node_id).constant_data;
   const std::vector<SubmapId> submap_ids = InitializeGlobalSubmapPoses(
       node_id.trajectory_id, constant_data->time, insertion_submaps);

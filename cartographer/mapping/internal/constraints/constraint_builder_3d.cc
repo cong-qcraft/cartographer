@@ -80,11 +80,17 @@ void ConstraintBuilder3D::MaybeAddConstraint(
     const std::vector<TrajectoryNode>& submap_nodes,
     const transform::Rigid3d& global_node_pose,
     const transform::Rigid3d& global_submap_pose) {
-  if ((global_node_pose.translation() - global_submap_pose.translation())
-          .norm() > options_.max_constraint_distance()) {
+  const auto dist = (global_node_pose.translation() - global_submap_pose.translation()).norm();
+  LOG(INFO) << "DIST: " << dist;
+  if (dist > options_.max_constraint_distance()) {
+    LOG(INFO) << "FAIL on dist!";
     return;
   }
-  if (!sampler_.Pulse()) return;
+  if (!sampler_.Pulse()) {
+    LOG(INFO) << "FAIL on pulse!";
+    return;
+  }
+  LOG(INFO) << "SUCCESS!";
 
   common::MutexLocker locker(&mutex_);
   if (when_done_) {
