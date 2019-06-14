@@ -248,12 +248,14 @@ LOG(INFO) << "ComputeConstraint";
   } else {
     kConstraintsSearchedMetric->Increment();
     LOG(INFO) << "ToMatch";
+    LOG(INFO) << global_node_pose;
     match_result = submap_scan_matcher.fast_correlative_scan_matcher->Match(
         global_node_pose, global_submap_pose, *constant_data,
         options_.min_score());
     LOG(INFO) << "Match Finished";
     if (match_result != nullptr) {
     LOG(INFO) << "Match Finished with score " << match_result->score;
+      LOG(INFO) << match_result->pose_estimate;
       // We've reported a successful local match.
       CHECK_GT(match_result->score, options_.min_score());
       kConstraintsFoundMetric->Increment();
