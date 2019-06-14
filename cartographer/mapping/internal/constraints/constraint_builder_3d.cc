@@ -81,16 +81,18 @@ void ConstraintBuilder3D::MaybeAddConstraint(
     const transform::Rigid3d& global_node_pose,
     const transform::Rigid3d& global_submap_pose) {
   const auto dist = (global_node_pose.translation() - global_submap_pose.translation()).norm();
-  LOG(INFO) << "DIST: " << dist;
   if (dist > options_.max_constraint_distance()) {
-    LOG(INFO) << "FAIL on dist!";
+    //LOG(INFO) << "FAIL on dist!";
     return;
   }
   if (!sampler_.Pulse()) {
-    LOG(INFO) << "FAIL on pulse!";
+    //LOG(INFO) << "FAIL on pulse!";
     return;
   }
-  LOG(INFO) << "SUCCESS!";
+  // Only keep loop closure constraints.
+  if (std::abs(node_id.node_index / 50 - submap_id.submap_index) < 3) {
+    return;
+  }
 
   common::MutexLocker locker(&mutex_);
   if (when_done_) {
@@ -108,6 +110,13 @@ void ConstraintBuilder3D::MaybeAddConstraint(
                       constant_data, global_node_pose, global_submap_pose,
                       *scan_matcher, constraint);
   });
+#if 0
+  if (*constraint != nullptr) {
+    LOG(INFO) << ">> MaybeAddConstraint. node_id: " << node_id << " submap_id: " << submap_id;
+    LOG(INFO) << "DIST: " << dist;
+    LOG(INFO) << "SUCCESS!";
+  }
+#endif
   constraint_task->AddDependency(scan_matcher->creation_task_handle);
   auto constraint_task_handle =
       thread_pool_->Schedule(std::move(constraint_task));
@@ -206,6 +215,7 @@ void ConstraintBuilder3D::ComputeConstraint(
     const transform::Rigid3d& global_submap_pose,
     const SubmapScanMatcher& submap_scan_matcher,
     std::unique_ptr<Constraint>* constraint) {
+LOG(INFO) << "ComputeConstraint";
   // The 'constraint_transform' (submap i <- node j) is computed from:
   // - a 'high_resolution_point_cloud' in node j and
   // - the initial guess 'initial_pose' (submap i <- node j).
@@ -237,10 +247,13 @@ void ConstraintBuilder3D::ComputeConstraint(
     }
   } else {
     kConstraintsSearchedMetric->Increment();
+    LOG(INFO) << "ToMatch";
     match_result = submap_scan_matcher.fast_correlative_scan_matcher->Match(
         global_node_pose, global_submap_pose, *constant_data,
         options_.min_score());
+    LOG(INFO) << "Match Finished";
     if (match_result != nullptr) {
+    LOG(INFO) << "Match Finished with score " << match_result->score;
       // We've reported a successful local match.
       CHECK_GT(match_result->score, options_.min_score());
       kConstraintsFoundMetric->Increment();
@@ -250,6 +263,7 @@ void ConstraintBuilder3D::ComputeConstraint(
       kConstraintLowResolutionScoresMetric->Observe(
           match_result->low_resolution_score);
     } else {
+      LOG(INFO) << "Match failed!";
       return;
     }
   }
@@ -265,6 +279,7 @@ void ConstraintBuilder3D::ComputeConstraint(
   // CSM estimate.
   ceres::Solver::Summary unused_summary;
   transform::Rigid3d constraint_transform;
+  LOG(INFO) << "Start match";
   ceres_scan_matcher_.Match(match_result->pose_estimate.translation(),
                             match_result->pose_estimate,
                             {{&constant_data->high_resolution_point_cloud,
@@ -272,6 +287,7 @@ void ConstraintBuilder3D::ComputeConstraint(
                              {&constant_data->low_resolution_point_cloud,
                               submap_scan_matcher.low_resolution_hybrid_grid}},
                             &constraint_transform, &unused_summary);
+  LOG(INFO) << "End match";
 
   constraint->reset(new Constraint{
       submap_id,

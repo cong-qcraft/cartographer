@@ -262,6 +262,7 @@ void OptimizationProblem3D::Solve(
     const std::map<std::string, LandmarkNode>& landmark_nodes) {
   if (node_data_.empty()) {
     // Nothing to optimize.
+    CHECK(0);
     return;
   }
 
@@ -329,6 +330,7 @@ void OptimizationProblem3D::Solve(
     }
   }
   // Add cost functions for intra- and inter-submap constraints.
+  LOG(INFO) << "Create contraint from submaps " << constraints.size();
   for (const Constraint& constraint : constraints) {
     problem.AddResidualBlock(
         SpaCostFunction3D::CreateAutoDiffCostFunction(constraint.pose),
@@ -445,6 +447,7 @@ void OptimizationProblem3D::Solve(
       }
 
       auto prev_node_it = node_it;
+        LOG(INFO) << "Create contraint from SLAM pose " << std::distance(node_it, trajectory_end);
       for (++node_it; node_it != trajectory_end; ++node_it) {
         const NodeId first_node_id = prev_node_it->id;
         const NodeSpec3D& first_node_data = prev_node_it->data;
@@ -537,6 +540,7 @@ void OptimizationProblem3D::Solve(
         fixed_frame_pose_initialized = true;
       }
 
+      CHECK(0);
       problem.AddResidualBlock(
           SpaCostFunction3D::CreateAutoDiffCostFunction(constraint_pose),
           nullptr /* loss function */,
@@ -569,6 +573,7 @@ void OptimizationProblem3D::Solve(
   }
 
   // Store the result.
+  LOG(INFO) << "C_submaps: " << C_submaps.size() << " C_nodes: " << C_nodes.size();
   for (const auto& C_submap_id_data : C_submaps) {
     submap_data_.at(C_submap_id_data.id).global_pose =
         C_submap_id_data.data.ToRigid();

@@ -275,12 +275,15 @@ std::vector<DiscreteScan3D> FastCorrelativeScanMatcher3D::GenerateDiscreteScans(
     const float range = point.norm();
     max_scan_range = std::max(range, max_scan_range);
   }
+  max_scan_range = std::min(50.0f, max_scan_range);
+
   const float kSafetyMargin = 1.f - 1e-2f;
   const float angular_step_size =
       kSafetyMargin * std::acos(1.f - common::Pow2(resolution_) /
                                           (2.f * common::Pow2(max_scan_range)));
   const int angular_window_size = common::RoundToInt(
       search_parameters.angular_search_window / angular_step_size);
+  LOG(INFO) << "angular_window_size " << angular_window_size;
   std::vector<float> angles;
   for (int rz = -angular_window_size; rz <= angular_window_size; ++rz) {
     angles.push_back(rz * angular_step_size);

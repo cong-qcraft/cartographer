@@ -193,7 +193,7 @@ void PoseGraph3D::AddLandmarkData(int trajectory_id,
 
 void PoseGraph3D::ComputeConstraint(const NodeId& node_id,
                                     const SubmapId& submap_id) {
-  LOG(INFO) << ">> PoseGraph3D::ComputeConstraint. node_id: " << node_id << " submap_id: " << submap_id;
+  //LOG(INFO) << ">> PoseGraph3D::ComputeConstraint. node_id: " << node_id << " submap_id: " << submap_id;
   CHECK(submap_data_.at(submap_id).state == SubmapState::kFinished);
 
   const transform::Rigid3d global_node_pose =
@@ -244,7 +244,7 @@ void PoseGraph3D::ComputeConstraint(const NodeId& node_id,
 }
 
 void PoseGraph3D::ComputeConstraintsForOldNodes(const SubmapId& submap_id) {
-  LOG(INFO) << ">> PoseGraph3D::ComputeConstraintsForOldNodes. submap_id: " << submap_id;
+  //LOG(INFO) << ">> PoseGraph3D::ComputeConstraintsForOldNodes. submap_id: " << submap_id;
   const auto& submap_data = submap_data_.at(submap_id);
   for (const auto& node_id_data : optimization_problem_->node_data()) {
     const NodeId& node_id = node_id_data.id;
@@ -258,7 +258,7 @@ void PoseGraph3D::ComputeConstraintsForNode(
     const NodeId& node_id,
     std::vector<std::shared_ptr<const Submap3D>> insertion_submaps,
     const bool newly_finished_submap) {
-  LOG(INFO) << ">> PoseGraph3D::ComputeConstraintsForNode node_id: " << node_id;
+  //LOG(INFO) << ">> PoseGraph3D::ComputeConstraintsForNode node_id: " << node_id;
   const auto& constant_data = trajectory_nodes_.at(node_id).constant_data;
   const std::vector<SubmapId> submap_ids = InitializeGlobalSubmapPoses(
       node_id.trajectory_id, constant_data->time, insertion_submaps);
@@ -349,8 +349,15 @@ void PoseGraph3D::HandleWorkQueue(
     const constraints::ConstraintBuilder3D::Result& result) {
   {
     common::MutexLocker locker(&mutex_);
+    LOG(INFO) << "New constraints: " << result.size();
     constraints_.insert(constraints_.end(), result.begin(), result.end());
   }
+  LOG(INFO) << "Total number of constraints: " << constraints_.size();
+
+  for (const auto& c : constraints_) {
+    LOG(INFO) << c.node_id << ' ' << c.submap_id << ' ' << c.pose.translation_weight << ' ' << c.pose.rotation_weight;
+  }
+
   RunOptimization();
 
   if (global_slam_optimization_callback_) {
@@ -616,6 +623,7 @@ void PoseGraph3D::LogResidualHistograms() const {
 
 void PoseGraph3D::RunOptimization() {
   if (optimization_problem_->submap_data().empty()) {
+    CHECK(0);
     return;
   }
 
@@ -623,6 +631,7 @@ void PoseGraph3D::RunOptimization() {
   // frozen_trajectories_ and landmark_nodes_ when executing the Solve. Solve is
   // time consuming, so not taking the mutex before Solve to avoid blocking
   // foreground processing.
+  LOG(INFO) << "Solving problem " << constraints_.size() << ' ' << frozen_trajectories_.size() << ' ' << landmark_nodes_.size();
   optimization_problem_->Solve(constraints_, frozen_trajectories_,
                                landmark_nodes_);
   common::MutexLocker locker(&mutex_);
